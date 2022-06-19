@@ -30,9 +30,9 @@ class RandomWords extends StatefulWidget {
 }
 
 class _RandomWordsState extends State<RandomWords> {
-  final _suggestions = <int>[];
+  final _suggestions = <String>[];
   final _biggerFont = const TextStyle(fontSize: 18);
-  final _found = <int>{};
+  final _found = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +43,7 @@ class _RandomWordsState extends State<RandomWords> {
             IconButton(
               icon: const Icon(Icons.qr_code),
               onPressed: () {
-                String code = _scanCode().toString();
-                if (code != "") {
-                  _found.add(1);
-                }
+                _scanQrCode(context);
               },
               tooltip: 'Scan a code',
             ),
@@ -59,9 +56,9 @@ class _RandomWordsState extends State<RandomWords> {
             if (i.isOdd) return const Divider();
             final index = i ~/ 2;
             if (index >= _suggestions.length) {
-              _suggestions.add(index);
+              _suggestions.add(index.toString());
             }
-            final alreadySaved = _found.contains(index);
+            final alreadySaved = _found.contains(index.toString());
             return ListTile(
               title: Text(
                 index.toString(),
@@ -77,62 +74,79 @@ class _RandomWordsState extends State<RandomWords> {
         ));
   }
 
+  Future<void> _scanQrCode(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => scanner()),
+    );
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$result')));
+    if (!_found.contains(result)) {
+      _found.add(result);
+    }
+  }
+}
+
+class scanner extends StatefulWidget {
+  const scanner({Key? key}) : super(key: key);
+
+  @override
+  State<scanner> createState() => _scannerState();
+}
+
+class _scannerState extends State<scanner> {
   MobileScannerController cameraController = MobileScannerController();
-  Future<String> _scanCode() async {
-    final result = Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (context) {
-        return Scaffold(
-            appBar: AppBar(
-              title: const Text('Mobile Scanner'),
-              actions: [
-                IconButton(
-                  color: Colors.white,
-                  icon: ValueListenableBuilder(
-                    valueListenable: cameraController.torchState,
-                    builder: (context, state, child) {
-                      switch (state as TorchState) {
-                        case TorchState.off:
-                          return const Icon(Icons.flash_off,
-                              color: Colors.grey);
-                        case TorchState.on:
-                          return const Icon(Icons.flash_on,
-                              color: Colors.yellow);
-                      }
-                    },
-                  ),
-                  iconSize: 32.0,
-                  onPressed: () => cameraController.toggleTorch(),
-                ),
-                IconButton(
-                  color: Colors.white,
-                  icon: ValueListenableBuilder(
-                    valueListenable: cameraController.cameraFacingState,
-                    builder: (context, state, child) {
-                      switch (state as CameraFacing) {
-                        case CameraFacing.front:
-                          return const Icon(Icons.camera_front);
-                        case CameraFacing.back:
-                          return const Icon(Icons.camera_rear);
-                      }
-                    },
-                  ),
-                  iconSize: 32.0,
-                  onPressed: () => cameraController.switchCamera(),
-                ),
-              ],
-            ),
-            body: MobileScanner(
-                allowDuplicates: false,
-                controller: cameraController,
-                onDetect: (barcode, args) {
-                  if (barcode.rawValue == null) {
-                    debugPrint('Failed to scan Barcode');
-                  } else {
-                    Navigator.pop(context, barcode.rawValue);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text('Mobile Scanner'),
+          actions: [
+            IconButton(
+              color: Colors.white,
+              icon: ValueListenableBuilder(
+                valueListenable: cameraController.torchState,
+                builder: (context, state, child) {
+                  switch (state as TorchState) {
+                    case TorchState.off:
+                      return const Icon(Icons.flash_off, color: Colors.grey);
+                    case TorchState.on:
+                      return const Icon(Icons.flash_on, color: Colors.yellow);
                   }
-                }));
-      },
-    ));
-    return result.toString();
+                },
+              ),
+              iconSize: 32.0,
+              onPressed: () => cameraController.toggleTorch(),
+            ),
+            IconButton(
+              color: Colors.white,
+              icon: ValueListenableBuilder(
+                valueListenable: cameraController.cameraFacingState,
+                builder: (context, state, child) {
+                  switch (state as CameraFacing) {
+                    case CameraFacing.front:
+                      return const Icon(Icons.camera_front);
+                    case CameraFacing.back:
+                      return const Icon(Icons.camera_rear);
+                  }
+                },
+              ),
+              iconSize: 32.0,
+              onPressed: () => cameraController.switchCamera(),
+            ),
+          ],
+        ),
+        body: MobileScanner(
+            allowDuplicates: false,
+            controller: cameraController,
+            onDetect: (barcode, args) {
+              if (barcode.rawValue == null) {
+                debugPrint('Failed to scan Barcode');
+              } else {
+                final String code = barcode.rawValue!;
+                Navigator.pop(context, code);
+              }
+            }));
   }
 }
