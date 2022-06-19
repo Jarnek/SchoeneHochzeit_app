@@ -81,10 +81,14 @@ class _RandomWordsState extends State<RandomWords> {
     );
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$result')));
-    if (!_found.contains(result)) {
-      _found.add(result);
-    }
+      ..showSnackBar(
+          SnackBar(content: Text('Congrats, you found code number $result')));
+
+    setState(() {
+      if (!_found.contains(result)) {
+        _found.add(result);
+      }
+    });
   }
 }
 
